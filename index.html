@@ -100,6 +100,8 @@
         const ip = urlParams.get('ip');
         const linkorig = urlParams.get('linkorig');
         const error = urlParams.get('error');
+        // รับค่าลิงก์ล็อกอินที่ถูกต้องจาก MikroTik (ป้องกันปัญหา IP เปลี่ยนหรือใช้ HTTPS)
+        const linklogin = urlParams.get('link_login') || "http://10.5.50.1/login"; 
 
         if (error) {
             const errorBox = document.getElementById('error-box');
@@ -131,8 +133,8 @@
                 btnSubmit.innerHTML = `<span>กำลังซิงค์ข้อมูลกับระบบเครือข่าย...</span>`;
 
                 // 3. ส่งข้อมูลไปให้ Backend (Node.js) สร้าง User ใน MikroTik
-                // ⚠️ สำคัญ: หากใช้มือถือทดสอบ ต้องเปลี่ยน 'localhost' เป็น 'IP ของคอมพิวเตอร์ที่เปิด VS Code' (เช่น 10.5.50.xxx)
-                const backendIP = "localhost"; 
+                // ⚠️ สำคัญ: หากนำไปใช้งานจริง หรือทดสอบด้วยมือถือ ต้องเปลี่ยน "localhost" เป็น IP ของ Server Node.js (เช่น "10.5.50.X" หรือ Domain จริง)
+                const backendIP = "172.16.110.208"; // <--- เปลี่ยน X เป็นเลข IP ของเครื่องที่รัน Node.js 
                 
                 const response = await fetch(`http://${backendIP}:5000/api/hotspot/login`, {
                     method: 'POST',
@@ -150,6 +152,9 @@
                     
                     // 4. Callback: ส่งสัญญาณกลับไปบอก MikroTik ให้เปิดเน็ต
                     const mtForm = document.getElementById('mikrotik-backlink');
+                    
+                    // เซ็ต Action ของ Form ไปยัง URL ที่ MikroTik ส่งมาให้โดยตรง
+                    mtForm.action = linklogin;
                     
                     document.getElementById('mt-user').value = usernameInput;
                     document.getElementById('mt-pass').value = passwordInput;
