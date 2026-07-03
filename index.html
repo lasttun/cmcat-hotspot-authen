@@ -23,7 +23,7 @@
         <!-- ส่วนหัว: โลโก้ และ ชื่อวิทยาลัย -->
         <div class="text-center mb-8">
             <div class="w-20 h-20 bg-[#059669] rounded-2xl mx-auto flex items-center justify-center shadow-md mb-4">
-                <!-- ใส่ไอคอนหรือโลโก้แบบ Flat/Minimalist -->
+                <!-- ไอคอนแบบ Flat/Minimalist -->
                 <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                 </svg>
@@ -32,117 +32,111 @@
             <p class="text-sm text-[#64748B] mt-1">วิทยาลัยเกษตรและเทคโนโลยีเชียงใหม่</p>
         </div>
 
-        <!-- กล่องแจ้งเตือนสถานะ Error (ถ้ามีหลุดมาจาก MikroTik) -->
+        <!-- กล่องแจ้งเตือนสถานะ Error -->
         <div id="error-box" class="hidden mb-6 bg-red-50 border border-red-200 text-red-600 text-sm p-3 rounded-xl"></div>
 
         <!-- ฟอร์มกรอกข้อมูล -->
         <form id="login-form" class="space-y-5">
             <div>
-                <label class="block text-sm font-medium text-[#475569] mb-1">รหัสนักศึกษา / ผู้ใช้งาน</label>
+                <label class="block text-sm font-medium text-[#475569] mb-1">รหัสนักศึกษา</label>
                 <input type="text" id="username" required 
                     class="w-full px-4 py-3 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl focus:outline-none focus:border-[#059669] focus:bg-white text-[#334155] transition-colors"
-                    placeholder="ระบุรหัสประจำตัวของคุณ">
+                    placeholder="ตัวอย่าง: 69310100xx">
             </div>
             
             <div>
-                <label class="block text-sm font-medium text-[#475569] mb-1">รหัสผ่าน</label>
+                <label class="block text-sm font-medium text-[#475569] mb-1">เลขบัตรประจำตัวประชาชน</label>
                 <input type="password" id="password" required 
                     class="w-full px-4 py-3 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl focus:outline-none focus:border-[#059669] focus:bg-white text-[#334155] transition-colors"
-                    placeholder="••••••••">
+                    placeholder="กรอกตัวเลข 13 หลักโดยไม่ต้องมีขีด">
             </div>
 
             <button type="submit" id="btn-submit"
                 class="w-full bg-[#059669] hover:bg-[#047857] text-white py-3 rounded-xl font-medium transition-all shadow-sm flex items-center justify-center space-x-2">
                 <span>เข้าสู่ระบบอินเทอร์เน็ต</span>
             </button>
+            
+            <!-- PDPA & พ.ร.บ. คอมพิวเตอร์ Notice -->
+            <p class="text-[11px] text-[#94A3B8] leading-tight mt-3 text-center">
+                ระบบมีความจำเป็นต้องบันทึกข้อมูลการจราจรทางคอมพิวเตอร์ (Log) รวมถึง IP และ MAC Address ของท่านเพื่อปฏิบัติตาม พ.ร.บ. ว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์
+            </p>
         </form>
 
-        <!-- ฟอร์มลับสำหรับใช้ทำ HTTP POST ส่งกลับไปปลดล็อกอินเทอร์เน็ตบน MikroTik -->
-        <form id="mikrotik-backlink" method="post" class="hidden">
+        <!-- ฟอร์มลับสำหรับใช้ทำ HTTP POST ส่งกลับไปปลดล็อกอินเทอร์เน็ตบน MikroTik (พอร์ต 9 Sandbox) -->
+        <form id="mikrotik-backlink" method="post" class="hidden" action="http://10.5.50.1/login">
             <input type="hidden" name="username" id="mt-user">
             <input type="hidden" name="password" id="mt-pass">
             <input type="hidden" name="dst" id="mt-dst">
             <input type="hidden" name="popup" value="true">
         </form>
 
-        <!-- ส่วนท้าย: ดีไซน์มินิมอลเคลียร์ๆ -->
+        <!-- ส่วนท้าย: ดีไซน์มินิมอล -->
         <div class="mt-8 pt-6 border-t border-[#F1F5F9] text-center">
-            <p class="text-xs text-[#94A3B8]">© 2026 IT Data Center | CMCAT </p>
+            <p class="text-xs text-[#94A3B8]">© 2026 IT Data Center | CMCAT</p>
         </div>
     </div>
 
     <!-- ==================== LOGIC INTERACTION & FIREBASE ==================== -->
     <script type="module">
-        // 1. นำเข้า Firebase Web SDK (Modular)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-        // คอนฟิก Firebase ของคุณ (เดี๋ยวเอาชุดจริงจากคอนโซลมาเปลี่ยนตรงนี้ครับ)
+        // โครงสร้าง Firebase Configuration ที่เชื่อมต่อระบบจริง
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyDSZM1HZqT9dmXcDlh35lIT3zgS4MhB5qQ",
+            authDomain: "cmcat-hotspot-authen.firebaseapp.com",
+            projectId: "cmcat-hotspot-authen",
+            storageBucket: "cmcat-hotspot-authen.firebasestorage.app",
+            messagingSenderId: "63200391589",
+            appId: "1:63200391589:web:ed7f7f34254c0bf510f84c"
         };
 
-        // เริ่มต้นการทำงาน Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // 2. ดักจับค่า Parameters ที่ MikroTik ส่งมาทาง URL Query String
+        // ดักจับค่า Parameters ที่ MikroTik ส่งมาทาง URL Query String
         const urlParams = new URLSearchParams(window.location.search);
         const mac = urlParams.get('mac');
         const ip = urlParams.get('ip');
         const linkorig = urlParams.get('linkorig');
         const error = urlParams.get('error');
 
-        // แสดงผล Error ถ้า MikroTik ส่งกลับมารอบสอง (เช่น รหัสผ่านผิดพลาดจากหลังบ้านเร้าเตอร์)
         if (error) {
             const errorBox = document.getElementById('error-box');
-            errorBox.textContent = `ข้อผิดพลาดจากระบบ: ${error}`;
+            errorBox.textContent = `แจ้งเตือนจากระบบเครือข่าย: ${error}`;
             errorBox.classList.remove('hidden');
         }
 
-        // 3. จัดการเมื่อผู้ใช้กด Submit ฟอร์มล็อกอิน
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const usernameInput = document.getElementById('username').value.trim();
-            const passwordInput = document.getElementById('password').value;
+            const passwordInput = document.getElementById('password').value.trim();
             const btnSubmit = document.getElementById('btn-submit');
             const errorBox = document.getElementById('error-box');
 
-            // เปลี่ยนสถานะปุ่มป้องกันการกดซ้ำ
             btnSubmit.disabled = true;
             btnSubmit.innerHTML = `<span>กำลังตรวจสอบสิทธิ์...</span>`;
             errorBox.classList.add('hidden');
 
             try {
-                // สมมติฐานโครงสร้าง Firebase Auth: ล็อกอินผ่าน Email (เช่น รหัสนักศึกษา@cmcat.ac.th)
-                // สามารถปรับรูปแบบอีเมลตามโครงสร้างฐานข้อมูลที่คุณ Natthawat วางไว้ได้เลยครับ
-                const emailFormat = `${usernameInput}@cmcat.ac.th`; 
+                // แปลงรหัสนักศึกษาให้อยู่ในฟอร์แมต Email จำลองเพื่อตรวจสอบกับ Firebase
+                const emailFormat = `${usernameInput}@cmcat.local`; 
 
-                // ส่งคำสั่งไปเช็คตัวตนที่ Firebase Cloud
+                // ตรวจสอบสิทธิ์ที่ Firebase Cloud
                 const userCredential = await signInWithEmailAndPassword(auth, emailFormat, passwordInput);
                 const user = userCredential.user;
+                console.log("ยืนยันตัวตนสำเร็จ:", user.uid);
 
-                console.log("Firebase Authenticated สำเร็จ:", user.uid);
-
-                // 4. ขั้นตอนการ Callback: ส่งสัญญาณกลับไปบอก MikroTik ให้เปิดเน็ต
-                // โดยการดึงไอพีเกตเวย์ของวง Sandbox (10.5.50.1) มาเป็นปลายทางในการกดยิงฟอร์มลับ
+                // Callback: ส่งสัญญาณกลับไปบอก MikroTik ให้เปิดเน็ต
                 const mtForm = document.getElementById('mikrotik-backlink');
                 
-                // ตั้งค่า Action ชี้ตรงกลับไปที่ตัวเร้าเตอร์
-                mtForm.action = `http://10.5.50.1/login`; 
-                
-                // ยัดข้อมูล User/Pass ที่จะใช้แมปบน MikroTik (ใช้รหัสผ่านเดียวกับที่คุยกับ Firebase หรือยูสเซอร์ชั่วคราว)
+                // ใช้ข้อมูลเดียวกันเพื่ออนุญาตผ่านฐานข้อมูลท้องถิ่นของ MikroTik
                 document.getElementById('mt-user').value = usernameInput;
                 document.getElementById('mt-pass').value = passwordInput;
                 document.getElementById('mt-dst').value = linkorig || "https://www.google.com";
 
-                // กดยิงส่งฟอร์มแบบอัตโนมัติ (HTTP POST) เพื่อปลดบล็อกเน็ตทันที
+                // กดยิงส่งฟอร์มเพื่อปลดบล็อกเน็ตทันที
                 mtForm.submit();
 
             } catch (err) {
@@ -150,8 +144,7 @@
                 btnSubmit.disabled = false;
                 btnSubmit.innerHTML = `<span>เข้าสู่ระบบอินเทอร์เน็ต</span>`;
                 
-                // แสดงข้อความเตือนเมื่อป้อนรหัสผิดพลาด
-                errorBox.textContent = "รหัสผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง";
+                errorBox.textContent = "รหัสนักศึกษา หรือ เลขบัตรประชาชน ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง";
                 errorBox.classList.remove('hidden');
             }
         });
