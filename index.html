@@ -63,7 +63,7 @@
         </form>
 
         <!-- ฟอร์มลับสำหรับใช้ทำ HTTP POST ส่งกลับไปปลดล็อกอินเทอร์เน็ตบน MikroTik (พอร์ต 9 Sandbox) -->
-        <form id="mikrotik-backlink" method="post" class="hidden" action="http://10.5.50.1/login">
+        <form id="mikrotik-backlink" method="post" class="hidden" action="http://$(gateway-address)/login">
             <input type="hidden" name="username" id="mt-user">
             <input type="hidden" name="password" id="mt-pass">
             <input type="hidden" name="dst" id="mt-dst">
