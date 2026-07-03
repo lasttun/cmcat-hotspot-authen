@@ -63,7 +63,7 @@
         </form>
 
         <!-- ฟอร์มลับสำหรับใช้ทำ HTTP POST ส่งกลับไปปลดล็อกอินเทอร์เน็ตบน MikroTik (พอร์ต 9 Sandbox) -->
-        <form id="mikrotik-backlink" method="post" class="hidden" action="http://$(gateway-address)/login">
+        <form id="mikrotik-backlink" method="post" class="hidden" action="http://10.5.50.1/login">
             <input type="hidden" name="username" id="mt-user">
             <input type="hidden" name="password" id="mt-pass">
             <input type="hidden" name="dst" id="mt-dst">
@@ -120,31 +120,58 @@
             errorBox.classList.add('hidden');
 
             try {
-                // แปลงรหัสนักศึกษาให้อยู่ในฟอร์แมต Email จำลองเพื่อตรวจสอบกับ Firebase
+                // 1. แปลงรหัสนักศึกษาให้อยู่ในฟอร์แมต Email จำลองเพื่อตรวจสอบกับ Firebase
                 const emailFormat = `${usernameInput}@cmcat.local`; 
 
-                // ตรวจสอบสิทธิ์ที่ Firebase Cloud
+                // 2. ตรวจสอบสิทธิ์ที่ Firebase Cloud
                 const userCredential = await signInWithEmailAndPassword(auth, emailFormat, passwordInput);
                 const user = userCredential.user;
-                console.log("ยืนยันตัวตนสำเร็จ:", user.uid);
+                console.log("ยืนยันตัวตนผ่าน Firebase สำเร็จ:", user.uid);
 
-                // Callback: ส่งสัญญาณกลับไปบอก MikroTik ให้เปิดเน็ต
-                const mtForm = document.getElementById('mikrotik-backlink');
+                btnSubmit.innerHTML = `<span>กำลังซิงค์ข้อมูลกับระบบเครือข่าย...</span>`;
+
+                // 3. ส่งข้อมูลไปให้ Backend (Node.js) สร้าง User ใน MikroTik
+                // ⚠️ สำคัญ: หากใช้มือถือทดสอบ ต้องเปลี่ยน 'localhost' เป็น 'IP ของคอมพิวเตอร์ที่เปิด VS Code' (เช่น 10.5.50.xxx)
+                const backendIP = "localhost"; 
                 
-                // ใช้ข้อมูลเดียวกันเพื่ออนุญาตผ่านฐานข้อมูลท้องถิ่นของ MikroTik
-                document.getElementById('mt-user').value = usernameInput;
-                document.getElementById('mt-pass').value = passwordInput;
-                document.getElementById('mt-dst').value = linkorig || "https://www.google.com";
+                const response = await fetch(`http://${backendIP}:5000/api/hotspot/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: usernameInput,
+                        password: passwordInput
+                    })
+                });
 
-                // กดยิงส่งฟอร์มเพื่อปลดบล็อกเน็ตทันที
-                mtForm.submit();
+                const backendData = await response.json();
+
+                if (backendData.success) {
+                    console.log("Backend สร้าง User สำเร็จ! กำลังปลดล็อกเน็ต...");
+                    
+                    // 4. Callback: ส่งสัญญาณกลับไปบอก MikroTik ให้เปิดเน็ต
+                    const mtForm = document.getElementById('mikrotik-backlink');
+                    
+                    document.getElementById('mt-user').value = usernameInput;
+                    document.getElementById('mt-pass').value = passwordInput;
+                    document.getElementById('mt-dst').value = linkorig || "https://www.google.com";
+
+                    // กดยิงส่งฟอร์มเพื่อปลดบล็อกเน็ตทันที
+                    mtForm.submit();
+                } else {
+                    throw new Error("Backend Error: " + backendData.message);
+                }
 
             } catch (err) {
-                console.error("Firebase Auth Error:", err.message);
+                console.error("System Error:", err.message);
                 btnSubmit.disabled = false;
                 btnSubmit.innerHTML = `<span>เข้าสู่ระบบอินเทอร์เน็ต</span>`;
                 
-                errorBox.textContent = "รหัสนักศึกษา หรือ เลขบัตรประชาชน ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง";
+                // ตรวจสอบว่า Error มาจากฝั่งไหน
+                if (err.message.includes("Backend Error")) {
+                    errorBox.textContent = "ไม่สามารถเชื่อมต่อระบบเครือข่ายได้ กรุณาแจ้งผู้ดูแลระบบ";
+                } else {
+                    errorBox.textContent = "รหัสนักศึกษา หรือ เลขบัตรประชาชน ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง";
+                }
                 errorBox.classList.remove('hidden');
             }
         });
