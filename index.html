@@ -164,16 +164,34 @@
                     throw new Error("Backend Error: " + backendData.message);
                 }
 
-            } catch (err) {
+} catch (err) {
                 console.error("System Error:", err.message);
+                
+                // 🚀 ฟีเจอร์แก้ปัญหา Walled Garden ตัดสาย (แต่หลังบ้านทำงานเสร็จแล้ว)
+                if (err.message.includes("Failed to fetch")) {
+                    console.log("ระบบหลังบ้านทำงานสำเร็จ กำลังบังคับล็อกอิน...");
+                    btnSubmit.innerHTML = `<span>กำลังเปิดสัญญาณอินเทอร์เน็ต...</span>`;
+                    
+                    // หน่วงเวลา 2.5 วินาทีให้ MikroTik สร้าง User เสร็จ แล้วยิงฟอร์มปลดล็อกเน็ตทันที
+                    setTimeout(() => {
+                        const mtForm = document.getElementById('mikrotik-backlink');
+                        mtForm.action = linklogin;
+                        document.getElementById('mt-user').value = usernameInput;
+                        document.getElementById('mt-pass').value = passwordInput;
+                        document.getElementById('mt-dst').value = linkorig || "https://www.google.com";
+                        mtForm.submit();
+                    }, 2500);
+                    return; // จบการทำงานตรงนี้ ไม่ต้องโชว์กล่องแดง
+                }
+
+                // หากเป็น Error อื่นๆ (เช่น รหัสผิด) ค่อยแสดงกล่องแดง
                 btnSubmit.disabled = false;
                 btnSubmit.innerHTML = `<span>เข้าสู่ระบบอินเทอร์เน็ต</span>`;
                 
-                // ตรวจสอบว่า Error มาจากฝั่งไหน
                 if (err.message.includes("Backend Error")) {
                     errorBox.textContent = "ไม่สามารถเชื่อมต่อระบบเครือข่ายได้ กรุณาแจ้งผู้ดูแลระบบ";
                 } else {
-                    errorBox.textContent = "รหัสนักศึกษา หรือ เลขบัตรประชาชน ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง";
+                    errorBox.textContent = "รหัสนักศึกษา หรือ เลขบัตรประชาชน ไม่ถูกต้อง";
                 }
                 errorBox.classList.remove('hidden');
             }
