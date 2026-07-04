@@ -133,10 +133,8 @@
                 btnSubmit.innerHTML = `<span>กำลังซิงค์ข้อมูลกับระบบเครือข่าย...</span>`;
 
                 // 3. ส่งข้อมูลไปให้ Backend (Node.js) สร้าง User ใน MikroTik
-                // ⚠️ สำคัญ: หากนำไปใช้งานจริง หรือทดสอบด้วยมือถือ ต้องเปลี่ยน "localhost" เป็น IP ของ Server Node.js (เช่น "10.5.50.X" หรือ Domain จริง)
-                const backendIP = "172.16.110.208"; // <--- เปลี่ยน X เป็นเลข IP ของเครื่องที่รัน Node.js 
-                
-                const response = await fetch(`http://${backendIP}:5000/api/hotspot/login`, {
+                // 3. ส่งข้อมูลไปให้ Backend (Node.js) บน Cloud (Render) สร้าง User ใน MikroTik
+                const response = await fetch(`https://cmcat-hotspot-backend.onrender.com/api/hotspot/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
