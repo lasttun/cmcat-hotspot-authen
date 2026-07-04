@@ -76,12 +76,11 @@
         </div>
     </div>
 
-    <!-- ==================== LOGIC INTERACTION & FIREBASE ==================== -->
+<!-- ==================== LOGIC INTERACTION & FIREBASE ==================== -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-        // โครงสร้าง Firebase Configuration ที่เชื่อมต่อระบบจริง
         const firebaseConfig = {
             apiKey: "AIzaSyDSZM1HZqT9dmXcDlh35lIT3zgS4MhB5qQ",
             authDomain: "cmcat-hotspot-authen.firebaseapp.com",
@@ -94,13 +93,11 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // ดักจับค่า Parameters ที่ MikroTik ส่งมาทาง URL Query String
         const urlParams = new URLSearchParams(window.location.search);
         const mac = urlParams.get('mac');
         const ip = urlParams.get('ip');
         const linkorig = urlParams.get('linkorig');
         const error = urlParams.get('error');
-        // รับค่าลิงก์ล็อกอินที่ถูกต้องจาก MikroTik (ป้องกันปัญหา IP เปลี่ยนหรือใช้ HTTPS)
         const linklogin = urlParams.get('link_login') || "http://10.5.50.1/login"; 
 
         if (error) {
@@ -108,6 +105,13 @@
             errorBox.textContent = `แจ้งเตือนจากระบบเครือข่าย: ${error}`;
             errorBox.classList.remove('hidden');
         }
+
+        // ฟังก์ชันพระเอก: กระโดดกลับไป MikroTik แบบส่ง Parameter (Double Jump)
+        const triggerMikroTikLogin = (username, password, dst) => {
+            const routerURL = linklogin.split('?')[0]; // ตัด query ขยะทิ้ง
+            const finalUrl = `${routerURL}?u=${encodeURIComponent(username)}&p=${encodeURIComponent(password)}&d=${encodeURIComponent(dst || "https://www.google.com")}`;
+            window.location.href = finalUrl;
+        };
 
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -122,56 +126,36 @@
             errorBox.classList.add('hidden');
 
             try {
-                // 1. แปลงรหัสนักศึกษาให้อยู่ในฟอร์แมต Email จำลองเพื่อตรวจสอบกับ Firebase
                 const emailFormat = `${usernameInput}@cmcat.local`; 
-
-                // 2. ตรวจสอบสิทธิ์ที่ Firebase Cloud
                 const userCredential = await signInWithEmailAndPassword(auth, emailFormat, passwordInput);
-                const user = userCredential.user;
-                console.log("ยืนยันตัวตนผ่าน Firebase สำเร็จ:", user.uid);
+                
+                btnSubmit.innerHTML = `<span>กำลังเชื่อมต่อสัญญาณอินเทอร์เน็ต...</span>`;
 
-                btnSubmit.innerHTML = `<span>กำลังซิงค์ข้อมูลกับระบบเครือข่าย...</span>`;
-
-                // 3. ส่งข้อมูลไปให้ Backend (Node.js) สร้าง User ใน MikroTik
-                // 3. ส่งข้อมูลไปให้ Backend (Node.js) บน Cloud (Render) สร้าง User ใน MikroTik
                 const response = await fetch(`https://cmcat-hotspot-backend.onrender.com/api/hotspot/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: usernameInput,
-                        password: passwordInput
-                    })
+                    body: JSON.stringify({ username: usernameInput, password: passwordInput })
                 });
 
                 const backendData = await response.json();
 
                 if (backendData.success) {
-                    console.log("Backend สร้าง User สำเร็จ! กำลังปลดล็อกเน็ต...");
-                    
-                    // 4. Callback: ส่ง URL พร้อม Parameter เพื่อล็อกอิน MikroTik (เลี่ยงหน้าต่างเตือน HTTPS > HTTP)
-                    const finalUrl = `${linklogin}?username=${encodeURIComponent(usernameInput)}&password=${encodeURIComponent(passwordInput)}&dst=${encodeURIComponent(linkorig || "https://www.google.com")}`;
-                    window.location.href = finalUrl;
+                    // รอ 1 วินาทีให้ MikroTik สร้าง User เสร็จ แล้วกระโดดกลับ
+                    setTimeout(() => triggerMikroTikLogin(usernameInput, passwordInput, linkorig), 1000);
                 } else {
                     throw new Error("Backend Error: " + backendData.message);
                 }
 
-} catch (err) {
+            } catch (err) {
                 console.error("System Error:", err.message);
                 
-                // 🚀 ฟีเจอร์แก้ปัญหา Walled Garden ตัดสาย (แต่หลังบ้านทำงานเสร็จแล้ว)
+                // หากหลังบ้านตัดสาย (Walled Garden Drop) แต่ทำงานเสร็จแล้ว ให้กระโดดล็อกอินเลย
                 if (err.message.includes("Failed to fetch")) {
-                    console.log("ระบบหลังบ้านทำงานสำเร็จ กำลังบังคับล็อกอิน...");
-                    btnSubmit.innerHTML = `<span>กำลังเปิดสัญญาณอินเทอร์เน็ต...</span>`;
-                    
-                    // หน่วงเวลา 2.5 วินาทีให้ MikroTik สร้าง User เสร็จ แล้วส่ง URL เพื่อล็อกอิน
-                    setTimeout(() => {
-                        const finalUrl = `${linklogin}?username=${encodeURIComponent(usernameInput)}&password=${encodeURIComponent(passwordInput)}&dst=${encodeURIComponent(linkorig || "https://www.google.com")}`;
-                        window.location.href = finalUrl;
-                    }, 2500);
-                    return; // จบการทำงานตรงนี้ ไม่ต้องโชว์กล่องแดง
+                    btnSubmit.innerHTML = `<span>กำลังเชื่อมต่อสัญญาณอินเทอร์เน็ต...</span>`;
+                    setTimeout(() => triggerMikroTikLogin(usernameInput, passwordInput, linkorig), 1500);
+                    return; 
                 }
 
-                // หากเป็น Error อื่นๆ (เช่น รหัสผิด) ค่อยแสดงกล่องแดง
                 btnSubmit.disabled = false;
                 btnSubmit.innerHTML = `<span>เข้าสู่ระบบอินเทอร์เน็ต</span>`;
                 
